@@ -18,7 +18,7 @@
 /* Moon position/size per stage (the UI pads itself around it) */
 body.state-intro { --moon-top: calc(13 * var(--vh)); --moon-size: min(46vw, 28 * var(--vh), 190px); }
 /* On the cards screen the moon starts small and grows ~65% as it fills (--grow: 0 → 1, set by script.js). */
-body.state-cards { --moon-top: calc(3 * var(--vh)); --moon-size: calc(min(20vw, 10.5 * var(--vh), 82px) * (1 + 0.65 * var(--grow, 0))); }
+body.state-cards { --moon-top: calc(3 * var(--vh)); --moon-size: calc(min(26vw, 13.65 * var(--vh), 107px) * (1 + 0.65 * var(--grow, 0))); }
 body.state-final { --moon-top: calc(8 * var(--vh)); --moon-size: min(52vw, 30 * var(--vh), 230px); }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -155,6 +155,67 @@ button { font: inherit; color: inherit; }
 .sf.bloom .head {
   transform: none;
   transition: transform 1.6s cubic-bezier(.2,.9,.25,1) .15s;
+}
+
+/* ============ Big sunflower on the opening screen ============ */
+.hero-sf {
+  position: absolute; bottom: -6px;
+  right: max(4%, 10px);
+  height: min(36 * var(--vh), 270px);
+  width: calc(min(36 * var(--vh), 270px) * 60 / 170);
+  transform-origin: 50% 100%;
+  transition: transform 1.6s cubic-bezier(.5,0,.6,1), opacity 1.2s ease .3s;
+}
+/* after she taps the moon it bows down and fades, so the garden can grow card by card */
+body:not(.state-intro) .hero-sf { transform: rotate(10deg) scale(.6); opacity: 0; }
+
+.hero-sway {
+  width: 100%; height: 100%;
+  transform-origin: 50% 100%;
+  animation: breeze 6.5s ease-in-out infinite;
+}
+.hero-sway svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* the head nods on its own rhythm, out of step with the stem */
+.hero-head {
+  transform-box: fill-box; transform-origin: 50% 80%;
+  animation: nod 4.3s ease-in-out infinite;
+}
+.hero-leaf { transform-box: fill-box; transform-origin: 0% 50%; animation: flutter 3.1s ease-in-out infinite; }
+.hero-leaf.l2, .hero-leaf.l3 { transform-origin: 100% 50%; animation-duration: 3.7s; animation-delay: -1.2s; }
+
+@keyframes breeze {
+  0%, 100% { transform: rotate(-1.2deg); }
+  30%      { transform: rotate(2.6deg); }
+  55%      { transform: rotate(.6deg); }
+  75%      { transform: rotate(3.2deg); }
+}
+@keyframes nod {
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(4deg) translateY(.5px); }
+}
+@keyframes flutter {
+  0%, 100% { transform: rotate(0); }
+  50%      { transform: rotate(-7deg); }
+}
+
+/* a petal now and then, carried off by the wind */
+.petal {
+  position: absolute; top: 6%; left: 40%;
+  width: 9px; height: 4px;
+  border-radius: 60% 40% 60% 40% / 70% 30% 70% 30%;
+  background: linear-gradient(90deg, #E39A12, #FFD45A);
+  opacity: 0;
+  animation: petalDrift 11s ease-in infinite;
+}
+.petal.p2 { animation-delay: 4s; animation-duration: 13s; top: 12%; }
+.petal.p3 { animation-delay: 8.5s; animation-duration: 12s; top: 3%; left: 55%; }
+@keyframes petalDrift {
+  0%   { transform: translate(0, 0) rotate(0); opacity: 0; }
+  6%   { opacity: .95; }
+  40%  { transform: translate(-90px, 40px) rotate(220deg); }
+  70%  { transform: translate(-170px, 30px) rotate(400deg); opacity: .8; }
+  100% { transform: translate(-260px, 90px) rotate(640deg); opacity: 0; }
 }
 
 /* ============ Fireflies (final screen) ============ */
@@ -358,10 +419,42 @@ button { font: inherit; color: inherit; }
 
 @keyframes fadeUp { to { opacity: 1; transform: none; } }
 
+/* ============ Music button ============ */
+.sound-btn {
+  position: fixed; z-index: 7;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: calc(env(safe-area-inset-right, 0px) + 12px);
+  width: 44px; height: 44px;
+  display: grid; place-items: center;
+  padding: 0; border-radius: 50%;
+  border: 1px solid rgba(230,224,248,.28);
+  background: rgba(30,27,58,.35);
+  color: var(--lavender);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  opacity: .8;
+  transition: opacity .3s ease, background .3s ease, color .3s ease;
+}
+.sound-btn:hover { opacity: 1; background: rgba(91,75,154,.4); }
+.sound-btn:focus-visible { outline: 2px solid var(--lavender-mid); outline-offset: 3px; }
+.sound-btn svg { width: 20px; height: 20px; overflow: visible; }
+.sound-btn .slash { opacity: 0; transition: opacity .3s ease; }
+.sound-btn.muted { color: rgba(230,224,248,.6); }
+.sound-btn.muted .slash { opacity: 1; }
+.sound-btn.playing:not(.muted) { color: var(--moon); }
+/* the note floats gently while music plays */
+.sound-btn.playing:not(.muted) .note { animation: noteFloat 3.2s ease-in-out infinite; }
+@keyframes noteFloat { 50% { transform: translateY(-1.2px); } }
+
 /* ============ Small/short screens ============ */
 @media (max-height: 600px) {
   :root { --meadow-h: 84px; }
   .cards { gap: 12px; }
+}
+/* keep the big sunflower clear of the opening text on short screens */
+@media (max-height: 640px) {
+  .hero-sf { height: calc(27 * var(--vh)); width: calc(27 * var(--vh) * 60 / 170); }
 }
 
 /* ============ Reduced motion ============ */
@@ -373,5 +466,6 @@ button { font: inherit; color: inherit; }
     transition-duration: .25s !important;
     transition-delay: 0s !important;
   }
-  .state-intro .moon::after, .fireflies { display: none; }
+  .state-intro .moon::after, .fireflies, .petal { display: none; }
+  .sound-btn .note { animation: none !important; }
 }

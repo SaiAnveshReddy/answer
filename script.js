@@ -367,6 +367,27 @@ function buildSunflowers() {
   box.innerHTML = html;
 }
 
+// The big sunflower on the opening screen, swaying in the breeze.
+function buildHeroFlower() {
+  $("heroFlower").innerHTML = `
+    <div class="hero-sway">
+      <svg viewBox="0 0 60 170" preserveAspectRatio="xMidYMax meet">
+        <path d="M28.6 170 C 27.6 140 30.8 96 28.9 44 L 31.3 44 C 33.4 96 30.6 140 31.6 170 Z" fill="url(#stemGrad)"/>
+        <g class="hero-leaf l1"><use href="#sfLeaf" x="30" y="112" width="26" height="15" transform="rotate(-16 30 120)"/></g>
+        <g class="hero-leaf l2"><use href="#sfLeaf" x="30" y="84" width="22" height="13" transform="translate(60 0) scale(-1 1) rotate(-12 30 90)"/></g>
+        <g class="hero-leaf l3"><use href="#sfLeaf" x="30" y="136" width="20" height="12" transform="translate(60 0) scale(-1 1) rotate(-22 30 142)"/></g>
+        <g transform="translate(30 30)">
+          <g class="hero-head">
+            <g transform="rotate(-8) scale(1 .93)">
+              <use href="#sfHead" x="-26" y="-26" width="52" height="52"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <span class="petal p1"></span><span class="petal p2"></span><span class="petal p3"></span>`;
+}
+
 // Show exactly `count` sunflowers (the rest fold away).
 function setGarden(count) {
   BLOOM_ORDER.forEach((slot, n) => {
@@ -482,6 +503,104 @@ function goTo(newIndex) {
   }, reduceMotion ? 120 : 360);
 }
 
+/* ---------------- Music ----------------
+   The <audio> element is routed through a Web Audio GainNode, because iPhone Safari
+   ignores audio.volume. All fades go through the gain. */
+const Music = (() => {
+  const VOLUME = 0.3;        // normal background level
+  const FINAL_VOLUME = 0.2;  // a little softer under the closing message
+  const KEY = "chhoti-music-muted";
+
+  let ctx = null, gain = null;
+  let started = false;
+  let level = VOLUME;
+  let muted = false;
+  try { muted = localStorage.getItem(KEY) === "1"; } catch (e) {}
+
+  const audio = () => $("music");
+  const btn = () => $("soundBtn");
+
+  function setupGraph() {
+    if (ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return; // very old browser: falls back to audio.volume below
+    try {
+      ctx = new AC();
+      gain = ctx.createGain();
+      gain.gain.value = 0;
+      ctx.createMediaElementSource(audio()).connect(gain);
+      gain.connect(ctx.destination);
+    } catch (e) { ctx = null; gain = null; }
+  }
+
+  // Smoothly move the volume to `to` over `seconds`.
+  function fadeTo(to, seconds) {
+    if (gain) {
+      const now = ctx.currentTime;
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(gain.gain.value, now);
+      gain.gain.linearRampToValueAtTime(to, now + seconds);
+    } else {
+      audio().volume = to; // fallback (no fade)
+    }
+  }
+
+  function play(fadeSeconds) {
+    const a = audio();
+    if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
+    const p = a.play();
+    if (p && p.catch) p.catch(() => {});
+    fadeTo(level, fadeSeconds);
+    btn().classList.add("playing");
+  }
+
+  function pause(fadeSeconds) {
+    fadeTo(0, fadeSeconds);
+    setTimeout(() => {
+      if (muted || document.hidden) audio().pause();
+    }, fadeSeconds * 1000 + 50);
+    btn().classList.remove("playing");
+  }
+
+  function render() {
+    btn().classList.toggle("muted", muted);
+    btn().setAttribute("aria-pressed", String(muted));
+    btn().setAttribute("aria-label", muted ? "Play music" : "Mute music");
+  }
+
+  return {
+    init() {
+      render();
+      btn().addEventListener("click", () => {
+        muted = !muted;
+        try { localStorage.setItem(KEY, muted ? "1" : "0"); } catch (e) {}
+        render();
+        if (!started) return;          // before the moon tap it just remembers the choice
+        if (muted) pause(0.6);
+        else { setupGraph(); play(1.5); }
+      });
+      // Pause when she switches tabs or locks her phone; come back softly.
+      document.addEventListener("visibilitychange", () => {
+        if (!started || muted) return;
+        if (document.hidden) pause(0.4);
+        else play(2);
+      });
+    },
+    // Called from the moon tap, which is the user gesture browsers require for sound.
+    start() {
+      if (started) return;
+      started = true;
+      setupGraph();
+      if (!muted) play(3);
+    },
+    setLevel(v, seconds) {
+      level = v;
+      if (started && !muted) fadeTo(level, seconds);
+    },
+    VOLUME, FINAL_VOLUME,
+  };
+})();
+
 /* ---------------- Stages ---------------- */
 function setStage(name) {
   document.body.className = `state-${name}`;
@@ -491,6 +610,7 @@ function setStage(name) {
 
 function start() {
   if (!document.body.classList.contains("state-intro")) return;
+  Music.start();
   setStage("cards");
   renderCard();
   setTimeout(() => $("card").focus({ preventScroll: true }), 900);
@@ -499,6 +619,7 @@ function start() {
 function finish() {
   // Make sure the garden is complete and the moon is full.
   applyProgress(TOTAL);
+  Music.setLevel(Music.FINAL_VOLUME, 6); // ease down as the closing message fades in
 
   const msg = $("message");
   msg.innerHTML = "";
@@ -525,6 +646,7 @@ function readAgain() {
   $("card").classList.remove("flipped");
   renderCard();
   applyProgress(0);
+  Music.setLevel(Music.VOLUME, 3);
 }
 
 /* ---------------- Helpers & wiring ---------------- */
@@ -540,6 +662,8 @@ function init() {
   initStars();
   buildLavender();
   buildSunflowers();
+  buildHeroFlower();
+  Music.init();
   buildDots();
   initParallax();
 
