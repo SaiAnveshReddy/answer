@@ -35,23 +35,22 @@
           <stop offset="70%" stop-color="#FFF6D9"/>
           <stop offset="100%" stop-color="#EFE0B8"/>
         </radialGradient>
-        <clipPath id="litClip">
-          <path id="litPath" d=""/>
-        </clipPath>
-      </defs>
-      <g transform="rotate(-18 100 100)">
-        <!-- the unlit part, faintly visible -->
-        <circle cx="100" cy="100" r="70" fill="#2C2652" fill-opacity="0.55" stroke="#FFF6D9" stroke-opacity="0.10" stroke-width="1"/>
-        <!-- the lit part, clipped to the current phase -->
-        <g clip-path="url(#litClip)">
-          <circle cx="100" cy="100" r="70" fill="url(#moonFill)"/>
+        <!-- moon surface, used as the fill of the lit shape -->
+        <pattern id="moonSurface" patternUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+          <circle cx="100" cy="100" r="72" fill="url(#moonFill)"/>
           <circle cx="78" cy="78" r="11" fill="#E8D9AE" fill-opacity="0.55"/>
           <circle cx="122" cy="70" r="6" fill="#E8D9AE" fill-opacity="0.5"/>
           <circle cx="130" cy="118" r="13" fill="#E8D9AE" fill-opacity="0.45"/>
           <circle cx="92" cy="128" r="7" fill="#E8D9AE" fill-opacity="0.5"/>
           <circle cx="146" cy="92" r="4" fill="#E8D9AE" fill-opacity="0.5"/>
           <circle cx="66" cy="112" r="5" fill="#E8D9AE" fill-opacity="0.45"/>
-        </g>
+        </pattern>
+      </defs>
+      <g transform="rotate(-18 100 100)">
+        <!-- the unlit part, faintly visible -->
+        <circle cx="100" cy="100" r="70" fill="#2C2652" fill-opacity="0.55" stroke="#FFF6D9" stroke-opacity="0.10" stroke-width="1"/>
+        <!-- the lit part: its shape is redrawn for each phase -->
+        <path id="litPath" d="" fill="url(#moonSurface)"/>
       </g>
     </svg>
   </button>

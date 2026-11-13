@@ -5,13 +5,12 @@
 const QUALITIES = [
   { quality: "Soft-natured",                quote: "Gentle like moonlight. Never loud, always there.",       note: "Even your “no” sounds kind." },
   { quality: "Explains things beautifully", quote: "You talk, and I can see the whole story.",               note: "I'd listen to you explain anything." },
-  { quality: "Reserved",                    quote: "Quiet like the mountains, and just as hard to move.",    note: "Worth every bit of the wait." },
+  { quality: "Reserved",                    quote: "Quiet like the mountains, and just as hard to move.",    note: "You choose your words, and your people, carefully." },
   { quality: "A genuinely good person",     quote: "Some people are good when it's easy. You just are.",     note: "The world's softer with you in it." },
   { quality: "Smart and intelligent",       quote: "Sharp mind, soft heart. A rare combination.",            note: "You make clever look easy." },
   { quality: "Caring",                      quote: "You notice the people others forget to.",                note: "Your kindness is quiet, and it stays." },
-  { quality: "Sense of humour",             quote: "The reason my calls run two hours over.",                note: "Your laugh is my favourite sound." },
+  { quality: "Sense of humour",             quote: "The reason my calls run two hours over.",                note: "Funnier than you let most people see." },
   { quality: "Patient",                     quote: "You never rush anyone, not even the moon.",              note: "Good things bloom slowly, like sunflowers." },
-  { quality: "A good listener",             quote: "You hear the things I don't say out loud.",              note: "Talking to you feels like coming home." },
   { quality: "Loyal",                       quote: "Like the moon to the night, you stay.",                  note: "Rare, like a blue moon." },
   { quality: "Mature",                      quote: "Calm in every storm.",                                   note: "An old soul with a young laugh." },
   { quality: "Down to earth",               quote: "Moon-level glow, feet on the ground.",                   note: "No airs. Just grace." },
@@ -20,7 +19,6 @@ const QUALITIES = [
   { quality: "Honest",                      quote: "No filters, no games. Just you.",                        note: "I never have to guess with you." },
   { quality: "Thoughtful",                  quote: "A good-night text at 4:30 a.m. Need I say more?",        note: "You remember the little things." },
   { quality: "A great communicator",        quote: "Four-hour calls that feel like four minutes.",           note: "Hours pass. Never enough." },
-  { quality: "Rooted in culture",           quote: "A saree, a Ramayana story, and so much grace.",          note: "Timeless, like the moon." },
 ];
 
 // Closing message: each item fades in as its own line.
@@ -48,7 +46,7 @@ const state = {
 /* ---------------- Moon phase ---------------- */
 // t: 0 = new moon, 1 = full moon (waxing, lit from the right).
 const MOON = { cx: 100, cy: 100, r: 70 };
-const START_PHASE = 0.1;
+const START_PHASE = 0.06; // a thin crescent
 let phaseNow = START_PHASE;
 let phaseAnim = null;
 
@@ -62,6 +60,9 @@ function phasePath(t) {
 function drawMoon(t) {
   $("litPath").setAttribute("d", phasePath(t));
   $("moon").style.setProperty("--glow", (0.25 + 0.75 * t).toFixed(3));
+  // The moon also grows a little as it fills (used on the cards screen).
+  const grow = Math.max(0, (t - START_PHASE) / (1 - START_PHASE));
+  document.body.style.setProperty("--grow", grow.toFixed(3));
 }
 
 function setPhase(target) {
@@ -189,7 +190,12 @@ function buildLavender() {
 
 /* ---------------- Sunflowers ---------------- */
 // Order they bloom in, so the garden fills in scattered rather than left to right.
-const BLOOM_ORDER = [8, 3, 13, 0, 11, 5, 16, 2, 9, 14, 6, 1, 17, 10, 4, 12, 7, 15];
+// Adapts automatically if you add or remove qualities.
+const BLOOM_ORDER = (() => {
+  const preferred = [8, 3, 13, 0, 11, 5, 16, 2, 9, 14, 6, 1, 17, 10, 4, 12, 7, 15].filter((s) => s < TOTAL);
+  for (let s = 0; s < TOTAL; s++) if (!preferred.includes(s)) preferred.push(s);
+  return preferred;
+})();
 
 function sunflowerSVG() {
   let petals = "";
