@@ -39,9 +39,88 @@ const TOTAL = QUALITIES.length;
 const state = {
   index: 0,
   opened: new Array(TOTAL).fill(false),
-  openedCount: 0,
   busy: false,
 };
+
+/* ---------------- Moon surface ----------------
+   A realistic near-side moon drawn once as an image: warm base, mottled texture,
+   the dark "seas" (maria) roughly where they really are, a few bright craters
+   (Tycho with its rays, Copernicus, Kepler), fine grain, and darker edges. */
+function moonSurfaceURL() {
+  const maria = [
+    // [cx, cy, rx, ry, rotate]  (140×140 box, as seen from Earth)
+    [52, 40, 17, 14, -10],  // Imbrium
+    [26, 74, 14, 27, 12],   // Procellarum
+    [88, 46, 11, 10, 0],    // Serenitatis
+    [98, 70, 15, 11, 20],   // Tranquillitatis
+    [123, 54, 8.5, 6.5, 0], // Crisium
+    [110, 90, 7.5, 11, 10], // Fecunditatis
+    [98, 100, 5.5, 5, 0],   // Nectaris
+    [62, 98, 11, 7, -5],    // Nubium
+    [72, 60, 6, 4.5, 0],    // Vaporum
+    [70, 21, 30, 4.5, -4],  // Frigoris
+    [44, 112, 8, 5, 20],    // Humorum
+  ];
+  const mariaSVG = maria.map(([x, y, rx, ry, r]) =>
+    `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" transform="rotate(${r} ${x} ${y})"/>`).join("");
+  const cores = maria.slice(0, 6).map(([x, y, rx, ry, r]) =>
+    `<ellipse cx="${x + 1}" cy="${y + 1}" rx="${rx * 0.55}" ry="${ry * 0.55}" transform="rotate(${r} ${x} ${y})"/>`).join("");
+
+  // Tycho's bright rays
+  let rays = "";
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2 + (i % 3) * 0.2;
+    const len = 18 + ((i * 7) % 5) * 7;
+    rays += `<line x1="66" y1="122" x2="${(66 + Math.cos(a) * len).toFixed(1)}" y2="${(122 + Math.sin(a) * len).toFixed(1)}"/>`;
+  }
+
+  // small craters: [x, y, r]
+  const craters = [[40, 58, 1.6], [84, 86, 1.3], [112, 108, 1.5], [118, 76, 1], [56, 128, 1.4], [92, 120, 1.2],
+    [34, 98, 1], [78, 32, 1.1], [104, 32, 1.3], [128, 96, 1], [20, 52, 1.1], [86, 132, 1.2], [60, 76, 0.9]];
+  const craterSVG = craters.map(([x, y, r]) =>
+    `<circle cx="${x}" cy="${y}" r="${r}" fill="#B9AE95" opacity=".7"/><circle cx="${x - r * 0.25}" cy="${y - r * 0.25}" r="${r * 0.6}" fill="#FFFDF4" opacity=".55"/>`).join("");
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140" width="560" height="560">
+  <defs>
+    <clipPath id="c"><circle cx="70" cy="70" r="70"/></clipPath>
+    <radialGradient id="base" cx="46%" cy="44%" r="62%">
+      <stop offset="0" stop-color="#FFFCF2"/><stop offset=".6" stop-color="#F5EDD8"/><stop offset="1" stop-color="#E4D8BC"/>
+    </radialGradient>
+    <radialGradient id="limb" cx="50%" cy="50%" r="50%">
+      <stop offset=".62" stop-color="#6E6047" stop-opacity="0"/><stop offset=".92" stop-color="#6E6047" stop-opacity=".22"/><stop offset="1" stop-color="#5A4C36" stop-opacity=".45"/>
+    </radialGradient>
+    <filter id="mottle" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="4" seed="11"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .55  0 0 0 0 .51  0 0 0 0 .44  1.5 0 0 0 -.6"/>
+    </filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .42  0 0 0 0 .39  0 0 0 0 .33  1.3 0 0 0 -.5"/>
+    </filter>
+    <filter id="sea" x="-30%" y="-30%" width="160%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency=".09" numOctaves="2" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G"/>
+      <feGaussianBlur stdDeviation="1.8"/>
+    </filter>
+    <filter id="blur1"><feGaussianBlur stdDeviation=".7"/></filter>
+  </defs>
+  <g clip-path="url(#c)">
+    <circle cx="70" cy="70" r="70" fill="url(#base)"/>
+    <rect width="140" height="140" filter="url(#mottle)" opacity=".5"/>
+    <g fill="#A49B85" opacity=".5" filter="url(#sea)">${mariaSVG}</g>
+    <g fill="#8E836C" opacity=".22" filter="url(#sea)">${cores}</g>
+    <g stroke="#FFFDF5" stroke-width=".9" opacity=".28" filter="url(#blur1)">${rays}</g>
+    <circle cx="66" cy="122" r="2.3" fill="#FFFEF8"/><circle cx="66" cy="122" r="3.6" fill="none" stroke="#FFFDF2" stroke-width=".8" opacity=".6"/>
+    <circle cx="44" cy="66" r="2" fill="#FFFDF4" opacity=".85"/><circle cx="44" cy="66" r="3.4" fill="#FFFDF4" opacity=".25" filter="url(#blur1)"/>
+    <circle cx="30" cy="64" r="1.3" fill="#FFFDF4" opacity=".8"/>
+    <circle cx="16" cy="58" r="1.5" fill="#FFFEF8" opacity=".9"/>
+    ${craterSVG}
+    <rect width="140" height="140" filter="url(#grain)" opacity=".35"/>
+    <circle cx="70" cy="70" r="70" fill="url(#limb)"/>
+  </g>
+</svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
 
 /* ---------------- Moon phase ---------------- */
 // t: 0 = new moon, 1 = full moon (waxing, lit from the right).
@@ -59,6 +138,8 @@ function phasePath(t) {
 
 function drawMoon(t) {
   $("litPath").setAttribute("d", phasePath(t));
+  // Safari sometimes doesn't repaint a mask whose shape changed; re-attaching it forces a redraw.
+  $("litImg").setAttribute("mask", "url(#litMask)");
   $("moon").style.setProperty("--glow", (0.25 + 0.75 * t).toFixed(3));
   // The moon also grows a little as it fills (used on the cards screen).
   const grow = Math.max(0, (t - START_PHASE) / (1 - START_PHASE));
@@ -197,47 +278,111 @@ const BLOOM_ORDER = (() => {
   return preferred;
 })();
 
-function sunflowerSVG() {
-  let petals = "";
-  for (let k = 0; k < 14; k++) {
-    petals += `<ellipse cx="20" cy="9.5" rx="3" ry="7" fill="#E8A91E" transform="rotate(${k * (360 / 14) + 360 / 28} 20 20)"/>`;
+// Drawn once into a hidden <svg> and reused by every flower with <use>.
+function buildSprites() {
+  const petal = "M0 -6.5 C -2.6 -8.5 -3.3 -13.5 -0.6 -18.6 Q 0 -19.6 0.6 -18.6 C 3.3 -13.5 2.6 -8.5 0 -6.5 Z";
+  let back = "", front = "";
+  for (let i = 0; i < 24; i++) {
+    const jitter = ((i * 37) % 7) - 3;
+    const len = 0.94 + ((i * 53) % 9) / 90;
+    back += `<path d="${petal}" fill="url(#petalBack)" transform="rotate(${(i * 15 + 7.5 + jitter).toFixed(1)}) scale(1.02 ${len.toFixed(2)})"/>`;
   }
-  for (let k = 0; k < 14; k++) {
-    petals += `<ellipse cx="20" cy="8.5" rx="3.2" ry="7.6" fill="#F4C430" transform="rotate(${k * (360 / 14)} 20 20)"/>`;
+  for (let i = 0; i < 22; i++) {
+    const jitter = ((i * 29) % 7) - 3;
+    const len = 0.84 + ((i * 41) % 9) / 80;
+    front += `<path d="${petal}" fill="url(#petalFront)" stroke="#C98608" stroke-width=".18" stroke-opacity=".5" transform="rotate(${(i * (360 / 22) + jitter).toFixed(1)}) scale(.95 ${len.toFixed(2)})"/>`;
   }
+  // seed head: golden-angle spiral, the way real sunflowers pack their seeds
+  let seeds = "";
+  for (let n = 1; n < 120; n++) {
+    const r = 0.66 * Math.sqrt(n);
+    if (r > 7.2) break;
+    const a = n * 2.39996;
+    const c = n % 3 === 0 ? "#6B4416" : n % 3 === 1 ? "#3E2408" : "#52300C";
+    seeds += `<circle cx="${(Math.cos(a) * r).toFixed(2)}" cy="${(Math.sin(a) * r).toFixed(2)}" r="${(0.3 + r * 0.025).toFixed(2)}" fill="${c}"/>`;
+  }
+  $("sprites").innerHTML = `
+    <defs>
+      <linearGradient id="petalBack" gradientUnits="userSpaceOnUse" x1="0" y1="-6" x2="0" y2="-19">
+        <stop offset="0" stop-color="#B86A04"/><stop offset=".45" stop-color="#E39A12"/><stop offset="1" stop-color="#F2B734"/>
+      </linearGradient>
+      <linearGradient id="petalFront" gradientUnits="userSpaceOnUse" x1="0" y1="-6" x2="0" y2="-19">
+        <stop offset="0" stop-color="#D98A06"/><stop offset=".35" stop-color="#F6BE22"/><stop offset="1" stop-color="#FFDB5C"/>
+      </linearGradient>
+      <radialGradient id="disc" cx="45%" cy="42%" r="55%">
+        <stop offset="0" stop-color="#5A3A12"/><stop offset=".6" stop-color="#3A2208"/><stop offset="1" stop-color="#2A1704"/>
+      </radialGradient>
+      <linearGradient id="stemGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#3C6328"/><stop offset=".5" stop-color="#5E8F43"/><stop offset="1" stop-color="#355A23"/>
+      </linearGradient>
+      <linearGradient id="leafGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#6E9F4E"/><stop offset="1" stop-color="#3F6A2B"/>
+      </linearGradient>
+    </defs>
+    <symbol id="sfHead" viewBox="-20 -20 40 40" overflow="visible">
+      <circle r="8.6" fill="#7A4A0E"/>
+      ${back}${front}
+      <circle r="8" fill="url(#disc)"/>
+      <circle r="7.6" fill="none" stroke="#C88E22" stroke-width="1" stroke-dasharray=".5 .7" opacity=".85"/>
+      ${seeds}
+      <ellipse cx="-2.6" cy="-2.8" rx="3.2" ry="2.2" fill="#FFF" opacity=".06"/>
+    </symbol>
+    <symbol id="sfLeaf" viewBox="0 0 20 12" overflow="visible">
+      <path d="M0 6 C 4 0 12 -1 20 3 C 14 9 6 11 0 6 Z" fill="url(#leafGrad)"/>
+      <path d="M0.5 6 C 6 4.6 12 3.8 19 3.2" stroke="#2F5220" stroke-width=".45" fill="none" opacity=".7"/>
+      <path d="M6 5 L 8 2.2 M10 4.3 L 12.4 1.6 M8 5 L 9.6 7.6 M12.5 4 L 14.4 6.6" stroke="#2F5220" stroke-width=".3" opacity=".5"/>
+    </symbol>`;
+}
+
+function sunflowerSVG(s) {
+  const tilt = (((s * 47) % 31) - 15).toFixed(0);          // heads face slightly different ways
+  const squash = (0.82 + ((s * 23) % 10) / 60).toFixed(2); // a little perspective
+  const bend = (((s * 19) % 7) - 3).toFixed(1);
   return `<svg viewBox="0 0 40 100" preserveAspectRatio="xMidYMax meet">
-    <path d="M20 100 C 18.8 78 21.2 50 20 26" stroke="#4F7A3B" stroke-width="2.4" fill="none"/>
-    <path d="M20 72 C 27 62 33 64 37 59 C 33 70 27 74 20 74 Z" fill="#5E8C45"/>
-    <path d="M20 58 C 13 50 8 52 4 47 C 7 58 13 61 20 61 Z" fill="#557F3F"/>
-    <g class="head">
-      ${petals}
-      <circle cx="20" cy="20" r="6.8" fill="#6B3F1F"/>
-      <circle cx="20" cy="20" r="4.4" fill="#4E2C14"/>
-      <circle cx="18.2" cy="18.4" r=".7" fill="#9A6A35"/><circle cx="21.8" cy="18.8" r=".7" fill="#9A6A35"/>
-      <circle cx="19.6" cy="21.8" r=".7" fill="#9A6A35"/><circle cx="22.2" cy="21.6" r=".6" fill="#9A6A35"/>
-      <circle cx="17.6" cy="21.2" r=".6" fill="#9A6A35"/>
+    <path d="M18.9 100 C 18.2 78 ${20 + +bend} 48 19.2 24 L 20.8 24 C ${21.6 + +bend} 48 20.4 78 21.1 100 Z" fill="url(#stemGrad)"/>
+    <use href="#sfLeaf" x="20" y="62" width="17" height="10" transform="rotate(-18 20 67)"/>
+    <use href="#sfLeaf" x="20" y="46" width="15" height="9" transform="translate(40 0) scale(-1 1) rotate(-14 20 50)"/>
+    <g transform="translate(20 20)">
+      <g class="head">
+        <g transform="rotate(${tilt}) scale(1 ${squash})">
+          <use href="#sfHead" x="-20" y="-20" width="40" height="40"/>
+        </g>
+      </g>
     </g>
   </svg>`;
 }
 
 function buildSunflowers() {
+  buildSprites();
   const box = $("flowers");
-  const slots = TOTAL;
   let html = "";
-  for (let s = 0; s < slots; s++) {
-    const x = 3 + (s + 0.5) * (94 / slots) + (((s * 7) % 3) - 1) * 0.8;
-    const h = 56 + ((s * 37) % 5) * 9; // 56..92px
+  for (let s = 0; s < TOTAL; s++) {
+    const x = 3 + (s + 0.5) * (94 / TOTAL) + (((s * 7) % 3) - 1) * 0.8;
+    const h = 54 + ((s * 37) % 5) * 8; // 54..86px
+    const w = h * 0.42;
     const d = (4 + ((s * 13) % 4)).toFixed(1);
-    html += `<div class="sf" data-slot="${s}" style="left:calc(${x.toFixed(2)}% - ${(h * 0.2).toFixed(1)}px);height:${h}px;width:${(h * 0.4).toFixed(1)}px">
-      <div class="sf-sway" style="--d:${d}s;--delay:-${s % 4}s">${sunflowerSVG()}</div></div>`;
+    html += `<div class="sf" data-slot="${s}" style="left:calc(${x.toFixed(2)}% - ${(w / 2).toFixed(1)}px);height:${h}px;width:${w.toFixed(1)}px">
+      <div class="sf-sway" style="--d:${d}s;--delay:-${s % 4}s">${sunflowerSVG(s)}</div></div>`;
   }
   box.innerHTML = html;
 }
 
-function bloom(n) {
-  const slot = BLOOM_ORDER[n];
-  const el = document.querySelector(`.sf[data-slot="${slot}"]`);
-  if (el) el.classList.add("bloom");
+// Show exactly `count` sunflowers (the rest fold away).
+function setGarden(count) {
+  BLOOM_ORDER.forEach((slot, n) => {
+    const el = document.querySelector(`.sf[data-slot="${slot}"]`);
+    if (el) el.classList.toggle("bloom", n < count);
+  });
+}
+
+// Progress = how far through the cards she is right now (not how many she's ever opened).
+function currentProgress() {
+  return state.opened[state.index] ? state.index + 1 : state.index;
+}
+
+function applyProgress(p) {
+  setPhase(phaseFor(p));
+  setGarden(p);
 }
 
 /* ---------------- Fireflies ---------------- */
@@ -312,9 +457,7 @@ function flip() {
   card.classList.toggle("flipped");
   if (!state.opened[state.index]) {
     state.opened[state.index] = true;
-    bloom(state.openedCount);
-    state.openedCount++;
-    setPhase(phaseFor(state.openedCount));
+    applyProgress(currentProgress());
     renderControls();
     renderDots();
   }
@@ -332,6 +475,7 @@ function goTo(newIndex) {
     card.classList.remove("leaving");
     card.classList.add("entering");
     renderCard();
+    applyProgress(currentProgress());
     void card.offsetWidth; // let the browser register the starting position
     card.classList.remove("entering", "no-anim");
     state.busy = false;
@@ -354,8 +498,7 @@ function start() {
 
 function finish() {
   // Make sure the garden is complete and the moon is full.
-  for (let n = 0; n < TOTAL; n++) bloom(n);
-  setPhase(1);
+  applyProgress(TOTAL);
 
   const msg = $("message");
   msg.innerHTML = "";
@@ -378,8 +521,10 @@ function readAgain() {
   $("fireflies").innerHTML = "";
   setStage("cards");
   state.index = 0;
+  state.opened.fill(false); // start the journey over: crescent moon, empty garden
   $("card").classList.remove("flipped");
   renderCard();
+  applyProgress(0);
 }
 
 /* ---------------- Helpers & wiring ---------------- */
@@ -389,6 +534,8 @@ function debounce(fn, ms) {
 }
 
 function init() {
+  const surface = moonSurfaceURL();
+  document.querySelectorAll(".moon-img").forEach((img) => img.setAttribute("href", surface));
   drawMoon(phaseNow);
   initStars();
   buildLavender();

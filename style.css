@@ -69,7 +69,7 @@ button { font: inherit; color: inherit; }
 .moon-halo {
   position: absolute; inset: -45%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,246,217,.55) 0%, rgba(255,246,217,.18) 34%, rgba(230,224,248,.06) 52%, transparent 68%);
+  background: radial-gradient(circle, rgba(255,248,228,.42) 0%, rgba(250,244,226,.16) 36%, rgba(220,214,245,.06) 54%, transparent 70%);
   opacity: var(--glow, .35);
   transition: opacity 1.2s ease;
   pointer-events: none;
@@ -127,12 +127,19 @@ button { font: inherit; color: inherit; }
   to   { transform: rotate(var(--amp, 3deg)); }
 }
 
+/* Sunflowers grow up and open when .bloom is added, and fold back down when removed. */
 .sf {
   position: absolute; bottom: -2px;
   transform-origin: 50% 100%;
-  transform: scale(0);
+  transform: scale(0) rotate(-10deg);
+  opacity: 0;
+  transition: transform .9s cubic-bezier(.5,0,.75,0), opacity .6s ease .3s;
 }
-.sf.bloom { animation: bloom 1.5s cubic-bezier(.2,.9,.25,1.05) forwards; }
+.sf.bloom {
+  transform: scale(1) rotate(0);
+  opacity: 1;
+  transition: transform 1.5s cubic-bezier(.22,1.2,.36,1), opacity .4s ease;
+}
 .sf-sway {
   width: 100%; height: 100%;
   transform-origin: 50% 100%;
@@ -140,17 +147,14 @@ button { font: inherit; color: inherit; }
   --amp: 2deg;
 }
 .sf svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.sf .head { transform-box: fill-box; transform-origin: center; }
-.sf.bloom .head { animation: headspin 1.5s cubic-bezier(.2,.9,.25,1) both; }
-
-@keyframes bloom {
-  0%   { transform: scale(0) rotate(-14deg); }
-  60%  { transform: scale(1.06) rotate(3deg); }
-  100% { transform: scale(1) rotate(0); }
+.sf .head {
+  transform-box: fill-box; transform-origin: center;
+  transform: rotate(-120deg) scale(.3);
+  transition: transform .8s ease-in;
 }
-@keyframes headspin {
-  0%   { transform: rotate(-140deg) scale(.25); }
-  100% { transform: rotate(0) scale(1); }
+.sf.bloom .head {
+  transform: none;
+  transition: transform 1.6s cubic-bezier(.2,.9,.25,1) .15s;
 }
 
 /* ============ Fireflies (final screen) ============ */

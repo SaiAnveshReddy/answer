@@ -30,27 +30,20 @@
     <span class="moon-halo" aria-hidden="true"></span>
     <svg class="moon-svg" viewBox="0 0 200 200" aria-hidden="true">
       <defs>
-        <radialGradient id="moonFill" cx="42%" cy="40%" r="65%">
-          <stop offset="0%" stop-color="#FFFBEE"/>
-          <stop offset="70%" stop-color="#FFF6D9"/>
-          <stop offset="100%" stop-color="#EFE0B8"/>
-        </radialGradient>
-        <!-- moon surface, used as the fill of the lit shape -->
-        <pattern id="moonSurface" patternUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
-          <circle cx="100" cy="100" r="72" fill="url(#moonFill)"/>
-          <circle cx="78" cy="78" r="11" fill="#E8D9AE" fill-opacity="0.55"/>
-          <circle cx="122" cy="70" r="6" fill="#E8D9AE" fill-opacity="0.5"/>
-          <circle cx="130" cy="118" r="13" fill="#E8D9AE" fill-opacity="0.45"/>
-          <circle cx="92" cy="128" r="7" fill="#E8D9AE" fill-opacity="0.5"/>
-          <circle cx="146" cy="92" r="4" fill="#E8D9AE" fill-opacity="0.5"/>
-          <circle cx="66" cy="112" r="5" fill="#E8D9AE" fill-opacity="0.45"/>
-        </pattern>
+        <!-- soft edge between day and night on the moon -->
+        <filter id="softEdge" filterUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+          <feGaussianBlur stdDeviation="1.6"/>
+        </filter>
+        <mask id="litMask" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+          <path id="litPath" d="" fill="#fff" filter="url(#softEdge)"/>
+        </mask>
       </defs>
       <g transform="rotate(-18 100 100)">
-        <!-- the unlit part, faintly visible -->
-        <circle cx="100" cy="100" r="70" fill="#2C2652" fill-opacity="0.55" stroke="#FFF6D9" stroke-opacity="0.10" stroke-width="1"/>
-        <!-- the lit part: its shape is redrawn for each phase -->
-        <path id="litPath" d="" fill="url(#moonSurface)"/>
+        <!-- night side: dark disc with a faint earthshine of the surface -->
+        <circle cx="100" cy="100" r="70" fill="#151230"/>
+        <image class="moon-img" x="30" y="30" width="140" height="140" opacity="0.08" href=""/>
+        <!-- day side: the same surface, masked to the current phase -->
+        <image class="moon-img" id="litImg" x="30" y="30" width="140" height="140" mask="url(#litMask)" href=""/>
       </g>
     </svg>
   </button>
@@ -92,6 +85,9 @@
   </div>
 
   <div class="fireflies" id="fireflies" aria-hidden="true"></div>
+
+  <!-- shared sunflower drawings (filled in by script.js) -->
+  <svg id="sprites" width="0" height="0" style="position:absolute" aria-hidden="true"></svg>
 
   <!-- ===== Screens ===== -->
   <main class="ui">
